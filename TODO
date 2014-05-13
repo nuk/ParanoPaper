@@ -1,10 +1,25 @@
 
-- [ ] Time of The day
+- [X] Time of The day
 	- [X] Discover Sunset/Sunrise
 	- [X] Dark during night, light during day
-	- [ ] Gradual 15 minutes before and after sunset/sunrise
+	- [?] Gradual 15 minutes before and after sunset/sunrise
 
 
+- Weather
+	- [ ] Get forecast
+	- [ ] Draw corresponding Icons
+
+- Altitude
+	- [ ] Grab data when available in sensor (not GPS)
+	- [ ] Adjust landscape position accordingly
+
+- Battery
+	- [ ] Change tree size accordingly
+
+- Tides
+	- [ ] Find a service
+	- [ ] Change Waves
+	 
 
 
 * Reference Walpapers:
