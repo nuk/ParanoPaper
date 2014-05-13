@@ -47,7 +47,7 @@ public class ParanopaperService extends WallpaperService {
 		private final Handler handler = new Handler();
 		private final Runnable drawRunner = new Runnable() {
 			public void run() {
-				draw(5000);
+				draw(100);
 			}
 
 		};
@@ -59,11 +59,19 @@ public class ParanopaperService extends WallpaperService {
 		
 		int offset = 0 ;
 		private BackgroundPainter backgroundPainter;
+		
+		Bitmap background ;
 
 		public WallpaperEngine() {
 			handler.post(drawRunner);
 		}
 
+		@Override
+		public void onCreate(SurfaceHolder surfaceHolder) {
+			super.onCreate(surfaceHolder);
+			background = BitmapFactory.decodeResource(getResources(), R.drawable.bkg_pre);
+		}
+		
 		@Override
 		public void onVisibilityChanged(boolean visible) {
 			this.visible = visible;
@@ -95,9 +103,8 @@ public class ParanopaperService extends WallpaperService {
 				float xOffsetStep, float yOffsetStep, int xPixelOffset,
 				int yPixelOffset) {
 			offset = xPixelOffset;
-			draw(40);
 		}
-		
+
 		private void draw(long delayInMillis) {
 			SurfaceHolder holder = getSurfaceHolder();
 			Canvas canvas = null;
@@ -106,6 +113,7 @@ public class ParanopaperService extends WallpaperService {
 				if (canvas != null){
 					backgroundPainter.paint(location, canvas);
 					drawLandscapeImage(canvas);
+					canvas.translate(offset, 0f);
 				}
 			} finally {
 				if (canvas != null)
@@ -118,10 +126,7 @@ public class ParanopaperService extends WallpaperService {
 		}
 
 		private void drawLandscapeImage(Canvas canvas) {
-			Paint p=new Paint();
-			Bitmap b=BitmapFactory.decodeResource(getResources(), R.drawable.bkg_pre);
-			p.setColor(Color.RED);
-			canvas.drawBitmap(b, offset-(b.getWidth()/5)+width/5, 100, p);
+			canvas.drawBitmap(background, offset-(background.getWidth()/5)+width/5, 100, null);
 		}
 	}
 }
