@@ -4,3 +4,4 @@
 bin/
 gen/
 proguard-project.txt
+/target

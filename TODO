@@ -1,3 +1,12 @@
+
+- [ ] Time of The day
+	- [X] Discover Sunset/Sunrise
+	- [X] Dark during night, light during day
+	- [ ] Gradual 15 minutes before and after sunset/sunrise
+
+
+
+
 * Reference Walpapers:
 	- https://play.google.com/store/apps/details?id=com.teragon.skyatdawnlw.lite
 	- https://play.google.com/store/apps/details?id=com.joko.paperlandpro
@@ -9,8 +18,10 @@
 	- http://stackoverflow.com/questions/9584791/how-to-make-animated-android-live-wallpaper
 	- http://www.vogella.com/tutorials/AndroidLiveWallpaper/article.html
 	- http://www.codeproject.com/Articles/108390/How-To-Create-Android-Live-Wallpaper
+	- http://code.tutsplus.com/tutorials/creating-live-wallpapers-on-android--mobile-9516
 
 * Sunrise/Sunset
 	- http://www.esrl.noaa.gov/gmd/grad/solcalc/
 	- https://github.com/mikereedell/sunrisesunsetlib-java
 	- http://stackoverflow.com/questions/2056555/c-sharp-sunrise-sunset-with-latitude-longitude#
+	- http://flatuicolors.com/
