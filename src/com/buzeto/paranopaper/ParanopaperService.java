@@ -1,9 +1,8 @@
 package com.buzeto.paranopaper;
 
-import java.util.Calendar;
-import java.util.TimeZone;
-
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -13,11 +12,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.service.wallpaper.WallpaperService;
 import android.view.SurfaceHolder;
-
-import com.luckycatlabs.sunrisesunset.SunriseSunsetCalculator;
 
 public class ParanopaperService extends WallpaperService {
 
@@ -37,18 +33,11 @@ public class ParanopaperService extends WallpaperService {
 		long minDistance = 500*1000; // meters 
 		manager.requestLocationUpdates(minTime, minDistance, c, 
 				new LocationListener() {
-			public void onStatusChanged(String provider, int status, Bundle extras) {
-				System.out.println("Status: "+provider+", "+status);
-			}
-			public void onProviderEnabled(String provider) {
-				System.out.println("Provider: "+provider);
-			}
-			public void onProviderDisabled(String provider) {
-				System.out.println("Disabled: "+provider);
-			}
+			public void onStatusChanged(String provider, int status, Bundle extras) {}
+			public void onProviderEnabled(String provider) {}
+			public void onProviderDisabled(String provider) {}
 			public void onLocationChanged(Location location) {
 				wallpaperEngine.location = location;
-				System.out.println("Changed location");
 			}
 		}, null);
 		
@@ -58,7 +47,7 @@ public class ParanopaperService extends WallpaperService {
 		private final Handler handler = new Handler();
 		private final Runnable drawRunner = new Runnable() {
 			public void run() {
-				draw();
+				draw(5000);
 			}
 
 		};
@@ -67,6 +56,9 @@ public class ParanopaperService extends WallpaperService {
 		private int width;
 		private int height;
 		private boolean visible = true;
+		
+		int offset = 0 ;
+		private BackgroundPainter backgroundPainter;
 
 		public WallpaperEngine() {
 			handler.post(drawRunner);
@@ -94,17 +86,26 @@ public class ParanopaperService extends WallpaperService {
 				int width, int height) {
 			this.width = width;
 			this.height = height;
+			backgroundPainter = new BackgroundPainter(width, height);
 			super.onSurfaceChanged(holder, format, width, height);
 		}
 
-		int count = 0 ;
-		private void draw() {
+		@Override
+		public void onOffsetsChanged(float xOffset, float yOffset,
+				float xOffsetStep, float yOffsetStep, int xPixelOffset,
+				int yPixelOffset) {
+			offset = xPixelOffset;
+			draw(40);
+		}
+		
+		private void draw(long delayInMillis) {
 			SurfaceHolder holder = getSurfaceHolder();
 			Canvas canvas = null;
 			try {
 				canvas = holder.lockCanvas();
 				if (canvas != null){
-					new BackgroundPainter(width, height).paint(location, canvas);
+					backgroundPainter.paint(location, canvas);
+					drawLandscapeImage(canvas);
 				}
 			} finally {
 				if (canvas != null)
@@ -112,11 +113,16 @@ public class ParanopaperService extends WallpaperService {
 			}
 			handler.removeCallbacks(drawRunner);
 			if (visible) {
-				handler.postDelayed(drawRunner, 5000);
+				handler.postDelayed(drawRunner,delayInMillis); //TODO: parametrize
 			}
 		}
 
-		
+		private void drawLandscapeImage(Canvas canvas) {
+			Paint p=new Paint();
+			Bitmap b=BitmapFactory.decodeResource(getResources(), R.drawable.bkg_pre);
+			p.setColor(Color.RED);
+			canvas.drawBitmap(b, offset-(b.getWidth()/5)+width/5, 100, p);
+		}
 	}
 }
 
@@ -147,7 +153,6 @@ class BackgroundPainter {
 	
 	void paint(Location location, Canvas canvas) {
 		DayPeriodCalculator c = new DayPeriodCalculator(location);
-		System.out.println(c.period());
 		if (c.period() == "SUNRISE"){
 			drawBackGround(canvas, MyColor.PUMPKIN.intColor);
 		}else if (c.period() == "DAY"){
