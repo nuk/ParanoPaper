@@ -8,6 +8,8 @@ import com.luckycatlabs.sunrisesunset.dto.Location;
 
 public class DayPeriodCalculator {
 	
+	enum Phase { SUNRISE, DAY, SUNSET, NIGHT} 
+	
 	private Calendar sunrise;
 	private Calendar sunset;
 	private Calendar now;
@@ -32,23 +34,41 @@ public class DayPeriodCalculator {
 		
 	}
 	
-	public String period(){
-		long diffSunrise = now.getTimeInMillis() - sunrise.getTimeInMillis();
-		diffSunrise = diffSunrise / 1000;
-		if (Math.abs(diffSunrise) < 15*60){
-			return "SUNRISE";
+	static class Status {
+		Phase phase;
+		int periodLenghInMinutes;
+		int periodPositionInMinutes;
+	}
+	
+	public Status period(){
+		long diffSunriseInSeconds = diffInSeconds(now, sunrise);
+		long diffSunsetInSeconds = diffInSeconds(now, sunset);
+		
+		Status status = new Status();
+		
+		if (Math.abs(diffSunriseInSeconds) < 15*60){
+			status.phase = Phase.SUNRISE;
+			status.periodLenghInMinutes = 30;
+			status.periodPositionInMinutes = (int)(diffSunriseInSeconds + 15*60)/60;
+		}else if (Math.abs(diffSunsetInSeconds) < 15*60){
+			status.phase = Phase.SUNSET;
+			status.periodLenghInMinutes = 30;
+			status.periodPositionInMinutes = (int)(diffSunsetInSeconds + 15*60)/60;
+		}else if (diffSunriseInSeconds > 0 && diffSunsetInSeconds < 0){
+			status.phase = Phase.DAY;
+			status.periodLenghInMinutes = (int)(diffSunriseInSeconds - diffSunsetInSeconds)/60;
+			status.periodPositionInMinutes = (int)(diffSunriseInSeconds)/60;
+		}else{
+			status.phase = Phase.NIGHT;
+			status.periodLenghInMinutes = (int)(diffSunsetInSeconds - diffSunriseInSeconds)/60;
+			status.periodPositionInMinutes = (int)(diffSunsetInSeconds)/60;
 		}
 		
-		long diffSunset = now.getTimeInMillis() - sunset.getTimeInMillis();
-		diffSunset = diffSunset / 1000;
-		if (Math.abs(diffSunset) < 15*60){
-			return "SUNSET";
-		}
-		
-		if (diffSunrise > 0 && diffSunset < 0){
-			return "DAY";
-		}
-		
-		return "NIGHT";
+		return status;
+	}
+	
+	private long diffInSeconds(Calendar c1, Calendar c2){
+		long diffSunrise = c1.getTimeInMillis() - c2.getTimeInMillis();
+		return diffSunrise / 1000;
 	}
 }

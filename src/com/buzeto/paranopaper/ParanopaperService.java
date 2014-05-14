@@ -1,11 +1,17 @@
 package com.buzeto.paranopaper;
 
+import java.util.HashMap;
+
+import com.buzeto.paranopaper.DayPeriodCalculator.Phase;
+import com.buzeto.paranopaper.DayPeriodCalculator.Status;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.ColorDrawable;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -13,6 +19,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.service.wallpaper.WallpaperService;
+import android.util.Log;
 import android.view.SurfaceHolder;
 
 public class ParanopaperService extends WallpaperService {
@@ -47,7 +54,7 @@ public class ParanopaperService extends WallpaperService {
 		private final Handler handler = new Handler();
 		private final Runnable drawRunner = new Runnable() {
 			public void run() {
-				draw(100);
+				draw(40);
 			}
 
 		};
@@ -69,7 +76,7 @@ public class ParanopaperService extends WallpaperService {
 		@Override
 		public void onCreate(SurfaceHolder surfaceHolder) {
 			super.onCreate(surfaceHolder);
-			background = BitmapFactory.decodeResource(getResources(), R.drawable.bkg_pre);
+			background = BitmapFactory.decodeResource(getResources(), R.drawable.bkg_pre_v3);
 		}
 		
 		@Override
@@ -134,50 +141,55 @@ public class ParanopaperService extends WallpaperService {
 class BackgroundPainter {
 	int width;
 	int height;
+	private HashMap<Phase, Integer> colorMap;
 	
 	public BackgroundPainter(int width, int height) {
 		super();
 		this.width = width;
 		this.height = height;
+		this.colorMap = new HashMap<Phase, Integer>(){{
+			put(Phase.SUNRISE,Color.rgb(211, 84, 0));
+			put(Phase.DAY,Color.rgb(52, 152, 219));
+			put(Phase.SUNSET,Color.rgb(211, 84, 0));
+			put(Phase.NIGHT,Color.rgb(44, 62, 80));
+		}};
 	}
 
-	enum MyColor {
-		POMEGRANATE(Color.rgb(211, 84, 0)),
-		PUMPKIN(Color.rgb(211, 84, 0)),
-		BELIZE_HOLE(Color.rgb(41, 128, 185)),
-		PETER_RIVER(Color.rgb(52, 152, 219)),
-		WET_ASPHALT(Color.rgb(52, 73, 94)),
-		MIDNIGHT_BLUE(Color.rgb(44, 62, 80)),
-		;
-		
-		private int intColor;
-		MyColor(int intColor){
-			this.intColor = intColor;
-		}
-	}
-	
 	void paint(Location location, Canvas canvas) {
 		DayPeriodCalculator c = new DayPeriodCalculator(location);
-		if (c.period() == "SUNRISE"){
-			drawBackGround(canvas, MyColor.PUMPKIN.intColor);
-		}else if (c.period() == "DAY"){
-			drawBackGround(canvas, MyColor.PETER_RIVER.intColor);
-		}else if (c.period() == "SUNSET"){
-			drawBackGround(canvas, MyColor.POMEGRANATE.intColor);
-		}else if (c.period() == "NIGHT"){
-			drawBackGround(canvas, MyColor.MIDNIGHT_BLUE.intColor);
+		Status period = c.period();
+		int color = colorMap.get(period.phase);
+		
+		drawBackGround(canvas, Color.WHITE, 128);
+		drawBackGround(canvas, color, calculateAlpha(period));
+	}
+
+	private int calculateAlpha(Status period) {
+		int halfPeriod = period.periodLenghInMinutes/2;
+		int position = period.periodPositionInMinutes;
+		if (period.periodPositionInMinutes > halfPeriod){
+			position = period.periodLenghInMinutes - period.periodPositionInMinutes;
 		}
+		int alpha = 127 + (position/halfPeriod)*128;
+		return alpha;
 	}
 
 	private void drawBackGround(Canvas canvas, int color) {
-		Paint paint = createPaint(color);
+		drawBackGround(canvas, color, 255);
+	}
+	
+	
+	private void drawBackGround(Canvas canvas, int color, int alpha) {
+		Paint paint = createPaint(color,alpha);
 		canvas.drawRect(0, 0, width, height, paint);
 	}
 
-	private Paint createPaint(int color) {
+	
+	private Paint createPaint(int color, int alpha) {
 		Paint paint = new Paint();
 		paint.setAntiAlias(true);
 		paint.setColor(color);
+		paint.setAlpha(alpha);
 		paint.setStyle(Paint.Style.FILL);
 		paint.setStrokeJoin(Paint.Join.ROUND);
 		paint.setStrokeWidth(10f);
