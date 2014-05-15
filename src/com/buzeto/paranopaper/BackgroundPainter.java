@@ -155,7 +155,7 @@ class NightPainter extends PeriodPainter{
 		int x = xOffset+width/2+(int)(moon_img.getWidth()*1.5);
 		int minY = height/2-moon_img.getHeight()/2;
 		int maxY = height/2-moon_img.getHeight()*2;
-		int y = (int)((minY+maxY)*status.periodHigh());
+		int y = (int)((minY+maxY)*(1-status.periodHigh()));
 		canvas.drawBitmap(moon_img,x,y, null);
 	}
 

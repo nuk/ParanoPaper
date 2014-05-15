@@ -43,7 +43,7 @@ public class DayPeriodCalculator {
 			int halfPeriod = periodLenghInMinutes/2;
 			int position = periodPositionInMinutes;
 			if (periodPositionInMinutes > halfPeriod){
-				position = periodLenghInMinutes - periodPositionInMinutes;
+				position = Math.abs(periodLenghInMinutes - periodPositionInMinutes);
 			}
 			return (double)position/halfPeriod;
 		}
@@ -69,8 +69,13 @@ public class DayPeriodCalculator {
 			status.periodPositionInMinutes = (int)(diffSunriseInSeconds)/60;
 		}else{
 			status.phase = Phase.NIGHT;
-			status.periodLenghInMinutes = (int)(diffSunsetInSeconds - diffSunriseInSeconds)/60;
-			status.periodPositionInMinutes = (int)(diffSunsetInSeconds)/60;
+			if(now.get(Calendar.HOUR_OF_DAY) < 6){
+				status.periodLenghInMinutes = Math.abs((int)(diffSunsetInSeconds - diffSunriseInSeconds)/60);
+				status.periodPositionInMinutes = Math.abs((int)(status.periodLenghInMinutes+diffSunsetInSeconds)/60);
+			}else{
+				status.periodLenghInMinutes = Math.abs((int)(diffSunriseInSeconds - diffSunsetInSeconds)/60);
+				status.periodPositionInMinutes = Math.abs((int)(status.periodLenghInMinutes+ diffSunsetInSeconds)/60);
+			}
 		}
 		
 		return status;

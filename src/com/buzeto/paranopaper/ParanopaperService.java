@@ -133,7 +133,7 @@ public class ParanopaperService extends WallpaperService {
 			}
 			handler.removeCallbacks(drawRunner);
 			if (visible) {
-				handler.postDelayed(drawRunner,delayInMillis); //TODO: parametrize
+				handler.postDelayed(drawRunner,delayInMillis); 
 			}
 		}
 
@@ -181,18 +181,15 @@ class LocationMonitor{
 		LocationManager manager = (LocationManager) service.getSystemService(Context.LOCATION_SERVICE);
 		Criteria c = new Criteria();
 		c.setAccuracy(Criteria.ACCURACY_COARSE);
-		long minTime = 0; //10*60*1000; // millis
-		long minDistance = 0; //500*1000; // meters 
+		long minTime = 10*60*1000; // millis
+		long minDistance = 500*1000; // meters 
 		manager.requestLocationUpdates(minTime, minDistance, c, 
 				new LocationListener() {
-			public void onStatusChanged(String provider, int status, Bundle extras) {
-				Log.d("location", "StatusChanged");
-			}
+			public void onStatusChanged(String provider, int status, Bundle extras) {}
 			public void onProviderEnabled(String provider) {}
 			public void onProviderDisabled(String provider) {}
 			public void onLocationChanged(Location newLocation) {
 				service.location = newLocation;
-				Log.d("location", "LocationChanged");
 			}
 		}, null);
 	}
