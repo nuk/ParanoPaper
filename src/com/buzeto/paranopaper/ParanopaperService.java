@@ -1,5 +1,6 @@
 package com.buzeto.paranopaper;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -7,9 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.graphics.PorterDuff.Mode;
-import android.graphics.drawable.ColorDrawable;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
@@ -24,7 +23,9 @@ import android.view.SurfaceHolder;
 public class ParanopaperService extends WallpaperService {
 
 	private WallpaperEngine wallpaperEngine = new WallpaperEngine();
-	private Intent batteryStatus;;
+	
+	Location location;
+	double batteryPercentage;
 
 	@Override
 	public Engine onCreateEngine() {
@@ -34,33 +35,10 @@ public class ParanopaperService extends WallpaperService {
 	}
 
 	private void installBatteryMonitor() {
-		IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-		batteryStatus = this.registerReceiver(null, ifilter);
+		new BatteryMonitor(this);
 	}
 	
-	private float batteryLevel(){
-		int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-		int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-
-		return level / (float)scale;
-	}
-
 	void instalLocationListener(){
-		LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-		Criteria c = new Criteria();
-		c.setAccuracy(Criteria.ACCURACY_COARSE);
-		long minTime = 10*60*1000; // millis
-		long minDistance = 500*1000; // meters 
-		manager.requestLocationUpdates(minTime, minDistance, c, 
-				new LocationListener() {
-			public void onStatusChanged(String provider, int status, Bundle extras) {}
-			public void onProviderEnabled(String provider) {}
-			public void onProviderDisabled(String provider) {}
-			public void onLocationChanged(Location location) {
-				wallpaperEngine.location = location;
-			}
-		}, null);
-		
 	}
 	
 	class WallpaperEngine extends Engine {
@@ -72,7 +50,6 @@ public class ParanopaperService extends WallpaperService {
 
 		};
 
-		Location location;
 		private int width;
 		private int height;
 		private boolean visible = true;
@@ -84,7 +61,6 @@ public class ParanopaperService extends WallpaperService {
 		private Bitmap battery_low_image;
 		private Bitmap battery_medium_image;
 		private Bitmap battery_full_image;
-		private Bitmap cloud_img;
 
 		public WallpaperEngine() {
 			handler.post(drawRunner);
@@ -145,17 +121,7 @@ public class ParanopaperService extends WallpaperService {
 					canvas.drawColor(Color.WHITE, Mode.CLEAR);
 					backgroundPainter.paint(location, offset, canvas);
 					drawLandscapeImage(canvas);
-					
-					Bitmap img = battery_medium_image;
-					if (batteryLevel() <= 0.30){
-						img = battery_low_image;
-					}else if (batteryLevel() >= 0.80){
-						img = battery_full_image;
-					}
-					
-					canvas.drawBitmap(img, 
-										offset+width/2+img.getWidth()/2, 
-										height/2-img.getHeight()/2+35, null);
+					drawBatteryTree(canvas);
 					
 				}
 			} catch(Exception e){
@@ -171,10 +137,63 @@ public class ParanopaperService extends WallpaperService {
 			}
 		}
 
+		private void drawBatteryTree(Canvas canvas) {
+			Bitmap img = battery_medium_image;
+			if (batteryPercentage <= 0.30){
+				img = battery_low_image;
+			}else if (batteryPercentage >= 0.80){
+				img = battery_full_image;
+			}
+			
+			int x = offset+width/2+img.getWidth()/2;
+//					int y = height/2-img.getHeight()/2+35;
+			int y = height-background.getHeight()/2-img.getHeight()/2;
+			canvas.drawBitmap(img,x,y, null);
+		}
+
 		private void drawLandscapeImage(Canvas canvas) {
-			canvas.drawBitmap(background, offset-(background.getWidth()/5)+width/5, 100, null);
+			canvas.drawBitmap(background, offset-(background.getWidth()/5)+width/5, height-background.getHeight(), null);
 		}
 	}
 }
 
 
+class BatteryMonitor{
+	public BatteryMonitor(final ParanopaperService service) {
+		IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+		Intent batteryStatus = service.registerReceiver(new BroadcastReceiver() {
+			
+			@Override
+			public void onReceive(Context arg0, Intent batteryStatus) {
+				int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+				int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+				service.batteryPercentage = level / (float)scale;
+			}
+		}, ifilter);
+		int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+		int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+		service.batteryPercentage = level / (float)scale;
+	}
+}
+
+class LocationMonitor{
+	public LocationMonitor(final ParanopaperService service) {
+		LocationManager manager = (LocationManager) service.getSystemService(Context.LOCATION_SERVICE);
+		Criteria c = new Criteria();
+		c.setAccuracy(Criteria.ACCURACY_COARSE);
+		long minTime = 0; //10*60*1000; // millis
+		long minDistance = 0; //500*1000; // meters 
+		manager.requestLocationUpdates(minTime, minDistance, c, 
+				new LocationListener() {
+			public void onStatusChanged(String provider, int status, Bundle extras) {
+				Log.d("location", "StatusChanged");
+			}
+			public void onProviderEnabled(String provider) {}
+			public void onProviderDisabled(String provider) {}
+			public void onLocationChanged(Location newLocation) {
+				service.location = newLocation;
+				Log.d("location", "LocationChanged");
+			}
+		}, null);
+	}
+}
