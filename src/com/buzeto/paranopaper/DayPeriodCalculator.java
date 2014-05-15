@@ -38,6 +38,15 @@ public class DayPeriodCalculator {
 		Phase phase;
 		int periodLenghInMinutes;
 		int periodPositionInMinutes;
+		
+		double periodHigh(){
+			int halfPeriod = periodLenghInMinutes/2;
+			int position = periodPositionInMinutes;
+			if (periodPositionInMinutes > halfPeriod){
+				position = periodLenghInMinutes - periodPositionInMinutes;
+			}
+			return (double)position/halfPeriod;
+		}
 	}
 	
 	public Status period(){
@@ -56,6 +65,7 @@ public class DayPeriodCalculator {
 			status.periodPositionInMinutes = (int)(diffSunsetInSeconds + 15*60)/60;
 		}else if (diffSunriseInSeconds > 0 && diffSunsetInSeconds < 0){
 			status.phase = Phase.DAY;
+			status.phase = Phase.NIGHT; //TODO: remove
 			status.periodLenghInMinutes = (int)(diffSunriseInSeconds - diffSunsetInSeconds)/60;
 			status.periodPositionInMinutes = (int)(diffSunriseInSeconds)/60;
 		}else{

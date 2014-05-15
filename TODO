@@ -3,6 +3,7 @@
 	- [X] Discover Sunset/Sunrise
 	- [X] Dark during night, light during day
 	- [X] Gradual 15 minutes before and after sunset/sunrise
+	- [ ] Sun/moon level according to time of day
 
 
 - Weather
@@ -14,7 +15,7 @@
 	- [ ] Adjust landscape position accordingly
 
 - Battery
-	- [ ] Change tree size accordingly
+	- [x] Change tree size accordingly
 
 - Tides
 	- [ ] Find a service

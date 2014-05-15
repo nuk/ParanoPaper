@@ -1,21 +1,20 @@
 package com.buzeto.paranopaper;
 
-import java.util.HashMap;
-
-import com.buzeto.paranopaper.DayPeriodCalculator.Phase;
-import com.buzeto.paranopaper.DayPeriodCalculator.Status;
-
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuff.Mode;
 import android.graphics.drawable.ColorDrawable;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.service.wallpaper.WallpaperService;
@@ -24,12 +23,26 @@ import android.view.SurfaceHolder;
 
 public class ParanopaperService extends WallpaperService {
 
-	private WallpaperEngine wallpaperEngine = new WallpaperEngine();;
+	private WallpaperEngine wallpaperEngine = new WallpaperEngine();
+	private Intent batteryStatus;;
 
 	@Override
 	public Engine onCreateEngine() {
 		instalLocationListener();
+		installBatteryMonitor();
 		return wallpaperEngine;
+	}
+
+	private void installBatteryMonitor() {
+		IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+		batteryStatus = this.registerReceiver(null, ifilter);
+	}
+	
+	private float batteryLevel(){
+		int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+		int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+
+		return level / (float)scale;
 	}
 
 	void instalLocationListener(){
@@ -68,6 +81,10 @@ public class ParanopaperService extends WallpaperService {
 		private BackgroundPainter backgroundPainter;
 		
 		Bitmap background ;
+		private Bitmap battery_low_image;
+		private Bitmap battery_medium_image;
+		private Bitmap battery_full_image;
+		private Bitmap cloud_img;
 
 		public WallpaperEngine() {
 			handler.post(drawRunner);
@@ -77,6 +94,13 @@ public class ParanopaperService extends WallpaperService {
 		public void onCreate(SurfaceHolder surfaceHolder) {
 			super.onCreate(surfaceHolder);
 			background = BitmapFactory.decodeResource(getResources(), R.drawable.bkg_pre_v3);
+			
+			battery_low_image = BitmapFactory.decodeResource(getResources(), R.drawable.small_twig_v2);
+			battery_low_image = Bitmap.createScaledBitmap(battery_low_image, battery_low_image.getWidth()/3, battery_low_image.getHeight()/3, false);
+			battery_medium_image = BitmapFactory.decodeResource(getResources(), R.drawable.medium_tree_v2);
+			battery_medium_image = Bitmap.createScaledBitmap(battery_medium_image, battery_medium_image.getWidth()/3, battery_medium_image.getHeight()/3, false);
+			battery_full_image = BitmapFactory.decodeResource(getResources(), R.drawable.big_tree_v3);
+			battery_full_image = Bitmap.createScaledBitmap(battery_full_image, battery_full_image.getWidth()/3, battery_full_image.getHeight()/3, false);
 		}
 		
 		@Override
@@ -101,7 +125,7 @@ public class ParanopaperService extends WallpaperService {
 				int width, int height) {
 			this.width = width;
 			this.height = height;
-			backgroundPainter = new BackgroundPainter(width, height);
+			backgroundPainter = new BackgroundPainter(width, height, getResources());
 			super.onSurfaceChanged(holder, format, width, height);
 		}
 
@@ -118,11 +142,26 @@ public class ParanopaperService extends WallpaperService {
 			try {
 				canvas = holder.lockCanvas();
 				if (canvas != null){
-					backgroundPainter.paint(location, canvas);
+					canvas.drawColor(Color.WHITE, Mode.CLEAR);
+					backgroundPainter.paint(location, offset, canvas);
 					drawLandscapeImage(canvas);
-					canvas.translate(offset, 0f);
+					
+					Bitmap img = battery_medium_image;
+					if (batteryLevel() <= 0.30){
+						img = battery_low_image;
+					}else if (batteryLevel() >= 0.80){
+						img = battery_full_image;
+					}
+					
+					canvas.drawBitmap(img, 
+										offset+width/2+img.getWidth()/2, 
+										height/2-img.getHeight()/2+35, null);
+					
 				}
-			} finally {
+			} catch(Exception e){
+				Log.e("error", "",e);
+			}
+			finally {
 				if (canvas != null)
 					holder.unlockCanvasAndPost(canvas);
 			}
@@ -135,65 +174,6 @@ public class ParanopaperService extends WallpaperService {
 		private void drawLandscapeImage(Canvas canvas) {
 			canvas.drawBitmap(background, offset-(background.getWidth()/5)+width/5, 100, null);
 		}
-	}
-}
-
-class BackgroundPainter {
-	int width;
-	int height;
-	private HashMap<Phase, Integer> colorMap;
-	
-	public BackgroundPainter(int width, int height) {
-		super();
-		this.width = width;
-		this.height = height;
-		this.colorMap = new HashMap<Phase, Integer>(){{
-			put(Phase.SUNRISE,Color.rgb(211, 84, 0));
-			put(Phase.DAY,Color.rgb(52, 152, 219));
-			put(Phase.SUNSET,Color.rgb(211, 84, 0));
-			put(Phase.NIGHT,Color.rgb(44, 62, 80));
-		}};
-	}
-
-	void paint(Location location, Canvas canvas) {
-		DayPeriodCalculator c = new DayPeriodCalculator(location);
-		Status period = c.period();
-		int color = colorMap.get(period.phase);
-		
-		drawBackGround(canvas, Color.WHITE, 128);
-		drawBackGround(canvas, color, calculateAlpha(period));
-	}
-
-	private int calculateAlpha(Status period) {
-		int halfPeriod = period.periodLenghInMinutes/2;
-		int position = period.periodPositionInMinutes;
-		if (period.periodPositionInMinutes > halfPeriod){
-			position = period.periodLenghInMinutes - period.periodPositionInMinutes;
-		}
-		int alpha = 127 + (position/halfPeriod)*128;
-		return alpha;
-	}
-
-	private void drawBackGround(Canvas canvas, int color) {
-		drawBackGround(canvas, color, 255);
-	}
-	
-	
-	private void drawBackGround(Canvas canvas, int color, int alpha) {
-		Paint paint = createPaint(color,alpha);
-		canvas.drawRect(0, 0, width, height, paint);
-	}
-
-	
-	private Paint createPaint(int color, int alpha) {
-		Paint paint = new Paint();
-		paint.setAntiAlias(true);
-		paint.setColor(color);
-		paint.setAlpha(alpha);
-		paint.setStyle(Paint.Style.FILL);
-		paint.setStrokeJoin(Paint.Join.ROUND);
-		paint.setStrokeWidth(10f);
-		return paint;
 	}
 }
 
